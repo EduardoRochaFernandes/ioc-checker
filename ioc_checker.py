@@ -35,7 +35,7 @@ Setup:
         VT_API_KEY=<your_key>          # https://www.virustotal.com/gui/my-apikey
         ABUSEIPDB_API_KEY=<your_key>   # https://www.abuseipdb.com/account/api
 
-Author  : [your name]
+Author  : Eduardo Fernandes
 Version : 2.0.0
 License : MIT
 """
