@@ -1,0 +1,15 @@
+# Example IOC list — rename to iocs.txt and replace with real IOCs
+# One IOC per line. Lines starting with # are ignored.
+
+# IPs
+185.220.101.45
+8.8.8.8
+
+# Domains
+malicious-domain.example.com
+
+# URLs
+https://phishing.example.com/login
+
+# Hashes (MD5 / SHA1 / SHA256)
+44d88612fea8a8f36de82e1278abb02f

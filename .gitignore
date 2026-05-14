@@ -1,0 +1,15 @@
+# Environment & secrets
+.env
+
+# Cache and logs generated at runtime
+.ioc_cache.json
+ioc_checker.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
