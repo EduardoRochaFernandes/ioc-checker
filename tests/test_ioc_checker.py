@@ -11,17 +11,14 @@ Run:
     pytest tests/ -v
 """
 
-import json
-import pytest
-from unittest.mock import patch, MagicMock
-from pathlib import Path
-
 # Make sure the parent directory is on the path when running from /tests
 import sys
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import ioc_checker as ic
-
 
 # =============================================================================
 # IOC classification
@@ -189,7 +186,6 @@ class TestCache:
         assert result == data
 
     def test_expired_cache_returns_none(self, tmp_path, monkeypatch):
-        from datetime import timedelta
         monkeypatch.setattr(ic, "CACHE_FILE", tmp_path / "test_cache.json")
         monkeypatch.setattr(ic, "CACHE_TTL_HOURS", 0)  # expire immediately
 
@@ -265,24 +261,21 @@ class TestAbuseipdbCheck:
         }
 
     @patch("ioc_checker.requests.get")
-    def test_returns_normalised_dict(self, mock_get):
+    def test_returns_normalised_dict(self, mock_get, monkeypatch):
         mock_response         = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = self._mock_response()
         mock_get.return_value = mock_response
 
-        with patch.dict("os.environ", {"ABUSEIPDB_API_KEY": "test-key"}):
-            ic.ABUSEIPDB_API_KEY = "test-key"
-            result = ic.abuseipdb_check("1.2.3.4")
+        monkeypatch.setattr(ic, "ABUSEIPDB_API_KEY", "test-key")
+        result = ic.abuseipdb_check("1.2.3.4")
 
         assert result["abuse_confidence_score"] == 95
         assert result["is_tor"] is True
 
-    def test_missing_key_returns_error(self):
-        original = ic.ABUSEIPDB_API_KEY
-        ic.ABUSEIPDB_API_KEY = ""
+    def test_missing_key_returns_error(self, monkeypatch):
+        monkeypatch.setattr(ic, "ABUSEIPDB_API_KEY", "")
         result = ic.abuseipdb_check("1.2.3.4")
-        ic.ABUSEIPDB_API_KEY = original
         assert "error" in result
 
 

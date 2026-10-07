@@ -20,6 +20,7 @@ Key features:
     - Structured verdict with analyst next steps (SOC L1/L2 aligned)
     - JSON output mode for piping into other tools
     - Bulk mode: read a list of IOCs from a file
+    - --demo mode: canned, synthetic API responses (no keys, no network)
 
 Usage:
     python ioc_checker.py -i 185.220.101.45
@@ -28,9 +29,10 @@ Usage:
     python ioc_checker.py -i 44d88612fea8a8f36de82e1278abb02f
     python ioc_checker.py -f iocs.txt
     python ioc_checker.py -i 8.8.8.8 --json | jq .
+    python ioc_checker.py --demo          # no API keys, no network
 
 Setup:
-    pip install requests python-dotenv
+    pip install -e .
     Create a .env file:
         VT_API_KEY=<your_key>          # https://www.virustotal.com/gui/my-apikey
         ABUSEIPDB_API_KEY=<your_key>   # https://www.abuseipdb.com/account/api
@@ -50,13 +52,13 @@ import os
 import re
 import sys
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 # ── Third-party ───────────────────────────────────────────────────────────────
 try:
     import requests
-    from requests.exceptions import ConnectionError, Timeout, HTTPError
+    from requests.exceptions import ConnectionError, HTTPError, Timeout
 except ImportError:
     sys.exit("[!] Missing dependency — run: pip install requests")
 
@@ -76,12 +78,20 @@ ABUSEIPDB_BASE    = "https://api.abuseipdb.com/api/v2"
 # Free VT tier: 4 requests/minute. 16s between calls keeps us safely under.
 VT_RATE_LIMIT_SECS = 16
 
-# Cache lives next to the script; entries expire after 24 hours by default.
-CACHE_FILE      = Path(__file__).parent / ".ioc_cache.json"
+# Cache and audit log live next to the script (the repo folder when you use
+# `pip install -e .`). Set IOC_CHECKER_HOME to store them somewhere else.
+DATA_DIR = Path(os.getenv("IOC_CHECKER_HOME") or Path(__file__).parent)
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+# Cache entries expire after 24 hours by default.
+CACHE_FILE      = DATA_DIR / ".ioc_cache.json"
 CACHE_TTL_HOURS = 24
 
 # Audit log — one line per triage run, appended indefinitely.
-LOG_FILE = Path(__file__).parent / "ioc_checker.log"
+LOG_FILE = DATA_DIR / "ioc_checker.log"
+
+# Demo mode (--demo): serve canned responses instead of calling the APIs.
+DEMO_MODE = False
 
 # ── Logging setup ─────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -295,6 +305,10 @@ def _vt_get(endpoint: str) -> dict:
     """
     global _last_vt_call
 
+    if DEMO_MODE:
+        from ioc_checker_demo import DEMO_VT
+        return DEMO_VT.get(endpoint, {"error": "IOC not found in VirusTotal database"})
+
     if not VT_API_KEY:
         return {"error": "VT_API_KEY not configured — add it to your .env file"}
 
@@ -469,6 +483,28 @@ def vt_check_hash(file_hash: str) -> dict:
 # AbuseIPDB API
 # =============================================================================
 
+def _parse_abuseipdb(d: dict) -> dict:
+    """Normalise the 'data' object of an AbuseIPDB /check response.
+
+    Args:
+        d: The 'data' sub-dict from the AbuseIPDB API response.
+
+    Returns:
+        Dict with the fields the report and verdict logic use.
+    """
+    return {
+        "abuse_confidence_score": d.get("abuseConfidenceScore", 0),
+        "total_reports":          d.get("totalReports", 0),
+        "country_code":           d.get("countryCode", "N/A"),
+        "isp":                    d.get("isp", "N/A"),
+        "domain":                 d.get("domain", "N/A"),
+        "is_tor":                 d.get("isTor", False),
+        "is_public":              d.get("isPublic", True),
+        "usage_type":             d.get("usageType", "N/A"),
+        "last_reported":          d.get("lastReportedAt", "N/A"),
+    }
+
+
 def abuseipdb_check(ip: str) -> dict:
     """Query AbuseIPDB for IP abuse history over the last 90 days.
 
@@ -481,6 +517,12 @@ def abuseipdb_check(ip: str) -> dict:
     Returns:
         Normalised result dict, or {'error': ...} on failure.
     """
+    if DEMO_MODE:
+        from ioc_checker_demo import DEMO_ABUSEIPDB
+        if ip not in DEMO_ABUSEIPDB:
+            return {"error": "No canned AbuseIPDB data for this IP (demo mode)"}
+        return _parse_abuseipdb(DEMO_ABUSEIPDB[ip])
+
     if not ABUSEIPDB_API_KEY:
         return {"error": "ABUSEIPDB_API_KEY not configured — add it to your .env file"}
 
@@ -494,18 +536,7 @@ def abuseipdb_check(ip: str) -> dict:
         if response.status_code == 429:
             return {"error": "AbuseIPDB daily limit reached (1000 req/day on free tier)"}
         response.raise_for_status()
-        d = response.json().get("data", {})
-        return {
-            "abuse_confidence_score": d.get("abuseConfidenceScore", 0),
-            "total_reports":          d.get("totalReports", 0),
-            "country_code":           d.get("countryCode", "N/A"),
-            "isp":                    d.get("isp", "N/A"),
-            "domain":                 d.get("domain", "N/A"),
-            "is_tor":                 d.get("isTor", False),
-            "is_public":              d.get("isPublic", True),
-            "usage_type":             d.get("usageType", "N/A"),
-            "last_reported":          d.get("lastReportedAt", "N/A"),
-        }
+        return _parse_abuseipdb(response.json().get("data", {}))
     except Timeout:
         return {"error": "AbuseIPDB request timed out after 12s"}
     except ConnectionError:
@@ -606,6 +637,7 @@ def _print_header(ioc: str, ioc_type: str, from_cache: bool) -> None:
         from_cache: Whether this result came from the local cache.
     """
     cache_tag = "  [CACHED]" if from_cache else ""
+    cache_tag += "  [DEMO - canned sample data]" if DEMO_MODE else ""
     print(f"\n{SEP2}")
     print(f"  IOC TRIAGE REPORT{cache_tag}")
     print(f"  {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC")
@@ -781,7 +813,8 @@ def _fetch_all(ioc: str, ioc_type: str) -> tuple[dict, dict | None, bool]:
     Returns:
         Tuple of (vt_result, abuseipdb_result_or_None, from_cache).
     """
-    cached = cache_get(ioc)
+    # Demo data is never cached (it must not mask real results later).
+    cached = None if DEMO_MODE else cache_get(ioc)
     if cached:
         log.info("Cache hit: %s", ioc)
         return cached.get("vt", {}), cached.get("abuse"), True
@@ -799,7 +832,8 @@ def _fetch_all(ioc: str, ioc_type: str) -> tuple[dict, dict | None, bool]:
     elif ioc_type.startswith("hash"):
         vt = vt_check_hash(ioc)
 
-    cache_set(ioc, {"vt": vt, "abuse": abuse})
+    if not DEMO_MODE:
+        cache_set(ioc, {"vt": vt, "abuse": abuse})
     return vt, abuse, False
 
 
@@ -865,7 +899,7 @@ def triage_bulk(filepath: str, json_output: bool = False) -> None:
         sys.exit(f"[!] File not found: {filepath}")
 
     lines = path.read_text(encoding="utf-8").splitlines()
-    iocs  = [l.strip() for l in lines if l.strip() and not l.startswith("#")]
+    iocs  = [ln.strip() for ln in lines if ln.strip() and not ln.startswith("#")]
 
     if not iocs:
         sys.exit("[!] No IOCs found in the file")
@@ -910,6 +944,7 @@ examples:
   %(prog)s -f iocs.txt
   %(prog)s -i 8.8.8.8 --json | jq .verdict
   %(prog)s -f iocs.txt --json > results.json
+  %(prog)s --demo                       (no API keys needed)
 
 ioc types (auto-detected):
   IP address  →  VirusTotal + AbuseIPDB
@@ -923,7 +958,7 @@ free api tier limits:
         """,
     )
 
-    group = parser.add_mutually_exclusive_group(required=True)
+    group = parser.add_mutually_exclusive_group()
     group.add_argument(
         "-i", "--ioc",
         metavar = "IOC",
@@ -940,6 +975,12 @@ free api tier limits:
         help   = "Output as JSON (for piping into jq or other tools)",
     )
     parser.add_argument(
+        "--demo",
+        action = "store_true",
+        help   = "Offline demo: canned synthetic responses, no API keys or network. "
+                 "Runs the bundled sample IOCs unless -i / -f is given",
+    )
+    parser.add_argument(
         "--no-cache",
         action = "store_true",
         help   = "Bypass local cache and force fresh API calls",
@@ -947,16 +988,34 @@ free api tier limits:
 
     args = parser.parse_args()
 
-    if args.no_cache and CACHE_FILE.exists():
+    # The report uses emoji and box-drawing characters; make sure legacy
+    # Windows consoles (cp1252) do not crash on them.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
+    if not (args.ioc or args.file or args.demo):
+        parser.error("one of the arguments -i/--ioc -f/--file --demo is required")
+
+    global DEMO_MODE
+    DEMO_MODE = args.demo
+
+    if args.no_cache and not DEMO_MODE and CACHE_FILE.exists():
         CACHE_FILE.unlink()
         print("[*] Cache cleared\n")
 
-    _check_api_keys()
+    if DEMO_MODE:
+        print("[*] DEMO MODE - synthetic canned data, no API keys or network used", file=sys.stderr)
+    else:
+        _check_api_keys()
 
     if args.ioc:
         triage_ioc(args.ioc, json_output=args.json)
-    else:
+    elif args.file:
         triage_bulk(args.file, json_output=args.json)
+    else:
+        from ioc_checker_demo import DEMO_IOCS
+        for ioc in DEMO_IOCS:
+            triage_ioc(ioc, json_output=args.json)
 
 
 if __name__ == "__main__":

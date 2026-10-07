@@ -1,0 +1,229 @@
+
+══════════════════════════════════════════════════════════════
+  IOC TRIAGE REPORT  [DEMO - canned sample data]
+  2026-10-07 20:30:34 UTC
+══════════════════════════════════════════════════════════════
+  IOC   :  203[.]0[.]113[.]66
+  Type  :  IP
+──────────────────────────────────────────────────────────────
+
+[ VirusTotal ]
+  Detections  :  🔴  14 malicious  /  2 suspicious  /  91 vendors
+  Reputation  :  -62
+  Country     :  NL
+  ASN         :  AS64500  —  Example Hosting B.V. (demo)
+  Tags        :  tor
+
+[ AbuseIPDB ]
+  Confidence  :  100/100  [██████████]
+  Reports     :  312  (last 90 days)
+  ISP         :  Example Hosting B.V. (demo)
+  Usage type  :  Data Center/Web Hosting/Transit
+  Tor node    :  YES  ⚠
+  Last report :  2026-01-15T09:30:00+00:00
+
+──────────────────────────────────────────────────────────────
+  VERDICT  :  TRUE POSITIVE ⚠
+  REASON   :  14/91 VT vendors flagged malicious | AbuseIPDB confidence 100/100 | confirmed Tor exit node
+──────────────────────────────────────────────────────────────
+
+[ Analyst Next Steps ]
+  1.  Document all findings now — before escalation to L2
+  2.  Search SIEM for this IOC across all hosts (last 30 days)
+  3.  Check for lateral movement — are other hosts involved?
+  4.  Block at firewall / proxy / EDR and raise a ticket
+  5.  Cross-reference with Talos Intelligence for added context
+  6.  Review netflow — check volume, frequency, and ports
+
+
+══════════════════════════════════════════════════════════════
+  IOC TRIAGE REPORT  [DEMO - canned sample data]
+  2026-10-07 20:30:34 UTC
+══════════════════════════════════════════════════════════════
+  IOC   :  198[.]51[.]100[.]23
+  Type  :  IP
+──────────────────────────────────────────────────────────────
+
+[ VirusTotal ]
+  Detections  :  🟡  2 malicious  /  1 suspicious  /  91 vendors
+  Reputation  :  -4
+  Country     :  DE
+  ASN         :  AS64501  —  Example Cloud GmbH (demo)
+
+[ AbuseIPDB ]
+  Confidence  :  40/100  [████░░░░░░]
+  Reports     :  9  (last 90 days)
+  ISP         :  Example Cloud GmbH (demo)
+  Usage type  :  Data Center/Web Hosting/Transit
+  Tor node    :  No
+  Last report :  2026-01-10T18:02:00+00:00
+
+──────────────────────────────────────────────────────────────
+  VERDICT  :  SUSPICIOUS 🔍
+  REASON   :  2 VT vendor(s) flagged malicious | AbuseIPDB confidence 40/100 — moderate risk
+──────────────────────────────────────────────────────────────
+
+[ Analyst Next Steps ]
+  1.  Do not block yet — gather context before taking action
+  2.  Search SIEM: which hosts? Which users? What time window?
+  3.  Cross-check with Talos Intelligence and URLScan.io
+  4.  Check asset criticality — is this host high-value?
+  5.  Confirmed malicious → treat as True Positive and escalate
+  6.  Confirmed benign → document the reasoning and close
+
+
+══════════════════════════════════════════════════════════════
+  IOC TRIAGE REPORT  [DEMO - canned sample data]
+  2026-10-07 20:30:34 UTC
+══════════════════════════════════════════════════════════════
+  IOC   :  8[.]8[.]8[.]8
+  Type  :  IP
+──────────────────────────────────────────────────────────────
+
+[ VirusTotal ]
+  Detections  :  🟢  0 malicious  /  0 suspicious  /  92 vendors
+  Reputation  :  500
+  Country     :  US
+  ASN         :  AS15169  —  Google LLC
+
+[ AbuseIPDB ]
+  Confidence  :  0/100  [░░░░░░░░░░]
+  Reports     :  0  (last 90 days)
+  ISP         :  Google LLC
+  Usage type  :  Data Center/Web Hosting/Transit
+  Tor node    :  No
+
+──────────────────────────────────────────────────────────────
+  VERDICT  :  LIKELY BENIGN ✓
+  REASON   :  No malicious detections | AbuseIPDB score 0/100
+──────────────────────────────────────────────────────────────
+
+[ Analyst Next Steps ]
+  1.  Document the investigation — note why this IOC was cleared
+  2.  Verify against your org's internal allowlist before closing
+  3.  If surrounding context is still suspicious → escalate anyway
+      A clean score does not automatically clear a suspicious alert.
+
+
+══════════════════════════════════════════════════════════════
+  IOC TRIAGE REPORT  [DEMO - canned sample data]
+  2026-10-07 20:30:34 UTC
+══════════════════════════════════════════════════════════════
+  IOC   :  login-update[.]example[.]com
+  Type  :  DOMAIN
+──────────────────────────────────────────────────────────────
+
+[ VirusTotal ]
+  Detections  :  🔴  7 malicious  /  2 suspicious  /  91 vendors
+  Reputation  :  -25
+  Registrar   :  Example Registrar (demo)
+  Registered  :  2026-01-01
+  Categories  :  phishing, malicious
+
+──────────────────────────────────────────────────────────────
+  VERDICT  :  TRUE POSITIVE ⚠
+  REASON   :  7/91 VT vendors flagged malicious
+──────────────────────────────────────────────────────────────
+
+[ Analyst Next Steps ]
+  1.  Document all findings now — before escalation to L2
+  2.  Search SIEM for this IOC across all hosts (last 30 days)
+  3.  Check for lateral movement — are other hosts involved?
+  4.  Block at firewall / proxy / EDR and raise a ticket
+  5.  Check DNS logs — which hosts resolved this and when?
+  6.  Review HTTP proxy logs for URI patterns and POST bodies
+
+
+══════════════════════════════════════════════════════════════
+  IOC TRIAGE REPORT  [DEMO - canned sample data]
+  2026-10-07 20:30:34 UTC
+══════════════════════════════════════════════════════════════
+  IOC   :  hxxps://docs[.]example[.]org/shared/invoice[.]html
+  Type  :  URL
+──────────────────────────────────────────────────────────────
+
+[ VirusTotal ]
+  Detections  :  🟡  0 malicious  /  3 suspicious  /  92 vendors
+  Reputation  :  N/A
+  Final URL   :  hxxps://docs[.]example[.]org/shared/invoice[.]html
+  Page title  :  Shared invoice
+  Categories  :  suspicious content
+
+──────────────────────────────────────────────────────────────
+  VERDICT  :  SUSPICIOUS 🔍
+  REASON   :  3 VT vendors flagged suspicious
+──────────────────────────────────────────────────────────────
+
+[ Analyst Next Steps ]
+  1.  Do not block yet — gather context before taking action
+  2.  Search SIEM: which hosts? Which users? What time window?
+  3.  Cross-check with Talos Intelligence and URLScan.io
+  4.  Check asset criticality — is this host high-value?
+  5.  Confirmed malicious → treat as True Positive and escalate
+  6.  Confirmed benign → document the reasoning and close
+
+
+══════════════════════════════════════════════════════════════
+  IOC TRIAGE REPORT  [DEMO - canned sample data]
+  2026-10-07 20:30:34 UTC
+══════════════════════════════════════════════════════════════
+  IOC   :  a2d5038b5a27ee54fe05bef590a3e9e2ed52e5e4c7bf2f82192d725f126fb3d0
+  Type  :  SHA256
+──────────────────────────────────────────────────────────────
+
+[ VirusTotal ]
+  Detections  :  🔴  9 malicious  /  1 suspicious  /  60 vendors
+  Reputation  :  N/A
+  File name   :  invoice_viewer.exe
+  File type   :  Win32 EXE
+  File size   :  482,304 bytes
+  MD5         :  N/A
+  SHA1        :  N/A
+  SHA256      :  a2d5038b5a27ee54fe05bef590a3e9e2ed52e5e4c7bf2f82192d725f126fb3d0
+  Detections  :
+    •  VendorA: Ransom.Demo.Gen
+    •  VendorB: Trojan.Demo.Agent
+    •  VendorC: Win32/Demo.Ransomware.A
+
+  MITRE ATT&CK  (inferred from detection names)
+    Tactic     :  Impact
+    Technique  :  T1486 – Data Encrypted for Impact
+  Tags        :  peexe
+
+──────────────────────────────────────────────────────────────
+  VERDICT  :  TRUE POSITIVE ⚠
+  REASON   :  9/60 VT vendors flagged malicious
+──────────────────────────────────────────────────────────────
+
+[ Analyst Next Steps ]
+  1.  Document all findings now — before escalation to L2
+  2.  Search SIEM for this IOC across all hosts (last 30 days)
+  3.  Check for lateral movement — are other hosts involved?
+  4.  Block at firewall / proxy / EDR and raise a ticket
+  5.  Isolate the affected endpoint immediately
+  6.  Submit to Any.Run or Hybrid Analysis for behaviour report
+  7.  Extract network IOCs from sandbox and re-run ioc_checker
+
+
+══════════════════════════════════════════════════════════════
+  IOC TRIAGE REPORT  [DEMO - canned sample data]
+  2026-10-07 20:30:34 UTC
+══════════════════════════════════════════════════════════════
+  IOC   :  never-seen[.]example[.]net
+  Type  :  DOMAIN
+──────────────────────────────────────────────────────────────
+
+[ VirusTotal ]
+  !  IOC not found in VirusTotal database
+
+──────────────────────────────────────────────────────────────
+  VERDICT  :  UNKNOWN ?
+  REASON   :  Data unavailable: IOC not found in VirusTotal database
+──────────────────────────────────────────────────────────────
+
+[ Analyst Next Steps ]
+  1.  Document the investigation — note why this IOC was cleared
+  2.  Verify against your org's internal allowlist before closing
+  3.  If surrounding context is still suspicious → escalate anyway
+      A clean score does not automatically clear a suspicious alert.
+
